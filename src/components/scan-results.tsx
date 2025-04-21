@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Download, RefreshCcw, Filter } from "lucide-react";
 import { Asset, AssetType, AssetTypeCount } from "@/types/asset-types";
@@ -34,14 +33,11 @@ export function ScanResults({
   const [compressionLevel, setCompressionLevel] = useState<string>("medium");
   const [typeCounts, setTypeCounts] = useState<AssetTypeCount[]>([]);
 
-  // Calculate stats when assets change
   useEffect(() => {
     if (!assets.length) return;
     
-    // Initialize selected assets (select all by default)
     setSelectedAssets(assets.filter(asset => asset.selected).map(asset => asset.id));
     
-    // Generate filename based on URL
     try {
       const urlObj = new URL(url);
       const hostname = urlObj.hostname.replace("www.", "");
@@ -50,7 +46,6 @@ export function ScanResults({
       setDownloadFilename("website-assets");
     }
     
-    // Calculate type counts
     const counts: Record<string, AssetTypeCount> = {};
     
     assets.forEach(asset => {
@@ -68,7 +63,6 @@ export function ScanResults({
     setTypeCounts(Object.values(counts));
   }, [assets, url]);
 
-  // Handle toggle select for individual asset
   const handleToggleSelect = (id: string, selected: boolean) => {
     if (selected) {
       setSelectedAssets(prev => [...prev, id]);
@@ -77,7 +71,6 @@ export function ScanResults({
     }
   };
 
-  // Select or deselect all assets
   const handleSelectAll = (selected: boolean) => {
     if (selected) {
       const filteredAssets = filterAssets().map(asset => asset.id);
@@ -87,7 +80,6 @@ export function ScanResults({
     }
   };
 
-  // Filter assets based on type and search query
   const filterAssets = () => {
     return assets.filter(asset => {
       const matchesType = filterType === "all" || asset.type === filterType;
@@ -97,7 +89,6 @@ export function ScanResults({
     });
   };
 
-  // Format bytes to human-readable size
   const formatBytes = (bytes: number): string => {
     if (bytes === 0) return "0 Bytes";
     const sizes = ["Bytes", "KB", "MB", "GB"];
@@ -105,7 +96,6 @@ export function ScanResults({
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   };
 
-  // Get total selected size
   const getTotalSelectedSize = (): string => {
     const total = assets
       .filter(asset => selectedAssets.includes(asset.id))
@@ -114,6 +104,38 @@ export function ScanResults({
   };
 
   const filteredAssets = filterAssets();
+
+  const handleZipDownload = async () => {
+    try {
+      const selectedAssetIds = filteredAssets
+        .filter(asset => selectedAssets.includes(asset.id))
+        .map(asset => asset.id);
+
+      if (selectedAssetIds.length === 0) {
+        return;
+      }
+
+      const result = await downloadAssets(
+        assets.filter(asset => selectedAssetIds.includes(asset.id)),
+        downloadFilename,
+        compressionLevel,
+        (progress) => {
+          onDownload(selectedAssetIds, downloadFilename, compressionLevel);
+        }
+      );
+
+      if (typeof result === 'string') {
+        const link = document.createElement('a');
+        link.href = result;
+        link.download = `${downloadFilename}.zip`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error) {
+      console.error('Failed to download assets:', error);
+    }
+  };
 
   return (
     <div className="w-full space-y-6 mt-8">
@@ -165,7 +187,6 @@ export function ScanResults({
 
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-6">
             <div className="space-y-6">
-              {/* Filter bar */}
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
                 <div className="flex flex-wrap gap-2 items-center">
                   <Button
@@ -204,7 +225,6 @@ export function ScanResults({
                 </div>
               </div>
               
-              {/* Select all */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-2">
                   <input
@@ -223,7 +243,6 @@ export function ScanResults({
                 </div>
               </div>
 
-              {/* Assets grid */}
               {filteredAssets.length > 0 ? (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                   {filteredAssets.map((asset) => (
@@ -244,7 +263,6 @@ export function ScanResults({
               )}
             </div>
 
-            {/* Download panel */}
             <div className="bg-harvester-900/30 rounded-lg p-4 border border-harvester-800">
               <h3 className="text-lg font-medium text-white mb-4">Download Options</h3>
               
@@ -285,7 +303,7 @@ export function ScanResults({
                 <Button 
                   className="w-full bg-harvester-600 hover:bg-harvester-500 text-white"
                   disabled={selectedAssets.length === 0}
-                  onClick={() => onDownload(selectedAssets, downloadFilename, compressionLevel)}
+                  onClick={handleZipDownload}
                 >
                   <Download className="h-4 w-4 mr-1" />
                   Download {selectedAssets.length} Assets
