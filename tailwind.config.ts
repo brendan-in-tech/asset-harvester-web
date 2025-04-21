@@ -32,6 +32,19 @@ export default {
 					DEFAULT: 'hsl(var(--secondary))',
 					foreground: 'hsl(var(--secondary-foreground))'
 				},
+				harvester: {
+					50: "#f3f1ff",
+					100: "#ebe5ff",
+					200: "#d9ceff",
+					300: "#bfaaff",
+					400: "#a17bff",
+					500: "#8952ff",
+					600: "#7a2ff7",
+					700: "#6b20e5",
+					800: "#5a1bc0",
+					900: "#4c199c",
+					950: "#2e0e6b",
+				},
 				destructive: {
 					DEFAULT: 'hsl(var(--destructive))',
 					foreground: 'hsl(var(--destructive-foreground))'
