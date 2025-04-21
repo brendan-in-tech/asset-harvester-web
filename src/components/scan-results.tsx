@@ -6,6 +6,7 @@ import { AssetCard } from "@/components/asset-card";
 import { ProgressBar } from "@/components/progress-bar";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { downloadAssets } from "@/utils/asset-scanner";
 
 interface ScanResultsProps {
   url: string;
