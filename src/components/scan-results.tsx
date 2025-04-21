@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
-import { Download, RefreshCcw, Filter } from "lucide-react";
+import { RefreshCcw, Filter } from "lucide-react";
 import { Asset, AssetType, AssetTypeCount } from "@/types/asset-types";
 import { Button } from "@/components/ui/button";
-import { AssetCard } from "@/components/asset-card";
-import { ProgressBar } from "@/components/progress-bar";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
+import { ProgressBar } from "@/components/progress-bar";
 import { downloadAssets } from "@/utils/asset-scanner";
+import { AssetTypeFilter } from "./scan-results/asset-type-filter";
+import { DownloadPanel } from "./scan-results/download-panel";
+import { AssetsGrid } from "./scan-results/assets-grid";
 
 interface ScanResultsProps {
   url: string;
@@ -97,15 +98,6 @@ export function ScanResults({
     return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
   };
 
-  const getTotalSelectedSize = (): string => {
-    const total = assets
-      .filter(asset => selectedAssets.includes(asset.id))
-      .reduce((sum, asset) => sum + (asset.size || 0), 0);
-    return formatBytes(total);
-  };
-
-  const filteredAssets = filterAssets();
-
   const handleZipDownload = async () => {
     try {
       const selectedAssetIds = filteredAssets
@@ -137,6 +129,8 @@ export function ScanResults({
       console.error('Failed to download assets:', error);
     }
   };
+
+  const filteredAssets = filterAssets();
 
   return (
     <div className="w-full space-y-6 mt-8">
@@ -173,7 +167,7 @@ export function ScanResults({
                 Assets from <span className="text-harvester-300">{url}</span>
               </h2>
               <p className="text-harvester-200 mt-1">
-                Found {assets.length} assets ({getTotalSelectedSize()} selected)
+                Found {assets.length} assets
               </p>
             </div>
             <Button 
@@ -189,30 +183,11 @@ export function ScanResults({
           <div className="grid grid-cols-1 lg:grid-cols-[3fr_1fr] gap-6">
             <div className="space-y-6">
               <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between">
-                <div className="flex flex-wrap gap-2 items-center">
-                  <Button
-                    variant={filterType === "all" ? "secondary" : "ghost"}
-                    size="sm"
-                    onClick={() => setFilterType("all")}
-                    className="h-7 text-xs"
-                  >
-                    All
-                  </Button>
-                  {typeCounts.map(typeCount => (
-                    <Button
-                      key={typeCount.type}
-                      variant={filterType === typeCount.type ? "secondary" : "ghost"}
-                      size="sm"
-                      onClick={() => setFilterType(typeCount.type)}
-                      className="h-7 text-xs"
-                    >
-                      {typeCount.type}
-                      <Badge variant="outline" className="ml-1 text-xs">
-                        {typeCount.count}
-                      </Badge>
-                    </Button>
-                  ))}
-                </div>
+                <AssetTypeFilter
+                  filterType={filterType}
+                  setFilterType={setFilterType}
+                  typeCounts={typeCounts}
+                />
                 
                 <div className="relative w-full sm:w-auto">
                   <Filter className="absolute left-2 top-1/2 transform -translate-y-1/2 h-4 w-4 text-harvester-500" />
@@ -226,91 +201,39 @@ export function ScanResults({
                 </div>
               </div>
               
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <input
-                    type="checkbox"
-                    id="select-all"
-                    className="rounded bg-harvester-900 border-harvester-600 text-harvester-600"
-                    checked={
-                      filteredAssets.length > 0 &&
-                      filteredAssets.every((asset) => selectedAssets.includes(asset.id))
-                    }
-                    onChange={(e) => handleSelectAll(e.target.checked)}
-                  />
-                  <label htmlFor="select-all" className="text-sm text-harvester-200">
-                    Select all {filterType !== "all" ? filterType : ""} assets ({filteredAssets.length})
-                  </label>
-                </div>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id="select-all"
+                  className="rounded bg-harvester-900 border-harvester-600 text-harvester-600"
+                  checked={
+                    filteredAssets.length > 0 &&
+                    filteredAssets.every((asset) => selectedAssets.includes(asset.id))
+                  }
+                  onChange={(e) => handleSelectAll(e.target.checked)}
+                />
+                <label htmlFor="select-all" className="text-sm text-harvester-200">
+                  Select all {filterType !== "all" ? filterType : ""} assets ({filteredAssets.length})
+                </label>
               </div>
 
-              {filteredAssets.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                  {filteredAssets.map((asset) => (
-                    <AssetCard
-                      key={asset.id}
-                      asset={{
-                        ...asset,
-                        selected: selectedAssets.includes(asset.id),
-                      }}
-                      onToggleSelect={handleToggleSelect}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="bg-harvester-900/30 rounded-lg p-8 text-center">
-                  <p className="text-harvester-300">No assets match your filter criteria</p>
-                </div>
-              )}
+              <AssetsGrid
+                assets={filteredAssets}
+                selectedAssets={selectedAssets}
+                onToggleSelect={handleToggleSelect}
+              />
             </div>
 
-            <div className="bg-harvester-900/30 rounded-lg p-4 border border-harvester-800">
-              <h3 className="text-lg font-medium text-white mb-4">Download Options</h3>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm text-harvester-300 mb-1">Output filename</label>
-                  <Input
-                    type="text"
-                    value={downloadFilename}
-                    onChange={(e) => setDownloadFilename(e.target.value)}
-                    className="bg-harvester-800 border-harvester-700 text-white"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm text-harvester-300 mb-1">Compression level</label>
-                  <select
-                    value={compressionLevel}
-                    onChange={(e) => setCompressionLevel(e.target.value)}
-                    className="w-full rounded-md bg-harvester-800 border-harvester-700 text-white py-2 px-3"
-                  >
-                    <option value="none">None (Faster)</option>
-                    <option value="medium">Medium (Balanced)</option>
-                    <option value="maximum">Maximum (Smaller size)</option>
-                  </select>
-                </div>
-                
-                <div>
-                  <label className="block text-sm text-harvester-300 mb-1">Selected assets</label>
-                  <p className="text-white text-lg font-medium">
-                    {selectedAssets.length} / {assets.length}
-                  </p>
-                  <p className="text-xs text-harvester-400">
-                    Total size: {getTotalSelectedSize()}
-                  </p>
-                </div>
-                
-                <Button 
-                  className="w-full bg-harvester-600 hover:bg-harvester-500 text-white"
-                  disabled={selectedAssets.length === 0}
-                  onClick={handleZipDownload}
-                >
-                  <Download className="h-4 w-4 mr-1" />
-                  Download {selectedAssets.length} Assets
-                </Button>
-              </div>
-            </div>
+            <DownloadPanel
+              downloadFilename={downloadFilename}
+              setDownloadFilename={setDownloadFilename}
+              compressionLevel={compressionLevel}
+              setCompressionLevel={setCompressionLevel}
+              selectedAssets={selectedAssets}
+              assets={assets}
+              onDownload={handleZipDownload}
+              formatBytes={formatBytes}
+            />
           </div>
         </>
       )}
