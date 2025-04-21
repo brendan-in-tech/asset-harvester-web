@@ -6,6 +6,15 @@ import { v4 as uuidv4 } from "uuid";
 const getAssetType = (url: string, mimeType?: string): AssetType => {
   const extension = url.split(".").pop()?.toLowerCase() || "";
   
+  // HTML types
+  if (
+    mimeType === "text/html" ||
+    extension === "html" ||
+    extension === "htm"
+  ) {
+    return "html";
+  }
+  
   // Image types
   if (
     mimeType?.startsWith("image/") ||
@@ -81,17 +90,25 @@ export const scanWebsite = async (
   url: string,
   onProgress: (progress: number, assets: Asset[]) => void
 ): Promise<ScanResult> => {
-  // This is a mock implementation
   try {
-    // We'll simulate asset discovery over time
     const mockAssets: Asset[] = [];
     const assetCount = Math.floor(Math.random() * 30) + 5; // 5-35 assets
     
-    // Prepare asset types to simulate
-    const assetTypes: AssetType[] = ["image", "stylesheet", "script", "font", "document", "other"];
+    // Prepare asset types to simulate, now including HTML
+    const assetTypes: AssetType[] = ["html", "image", "stylesheet", "script", "font", "document", "other"];
     
+    // Ensure at least one HTML file is included
+    mockAssets.push({
+      id: uuidv4(),
+      url: `${url}/index.html`,
+      filename: 'index.html',
+      type: 'html',
+      size: Math.floor(Math.random() * 50000) + 5000, // 5KB to 50KB
+      selected: true
+    });
+
     // Simulate discovering assets over time
-    for (let i = 0; i < assetCount; i++) {
+    for (let i = 0; i < assetCount - 1; i++) {
       await new Promise(resolve => setTimeout(resolve, 200)); // Simulate network delay
       
       // Generate mock asset
@@ -106,7 +123,6 @@ export const scanWebsite = async (
         filename,
         type,
         size,
-        // For images, generate a random color placeholder
         previewUrl: type === "image" ? getRandomColorImage() : undefined,
         selected: true
       };
@@ -114,11 +130,10 @@ export const scanWebsite = async (
       mockAssets.push(asset);
       
       // Report progress
-      const progress = ((i + 1) / assetCount) * 100;
+      const progress = ((i + 2) / (assetCount + 1)) * 100;
       onProgress(progress, [...mockAssets]);
     }
     
-    // Return completed scan result
     return {
       url,
       assets: mockAssets,
@@ -126,7 +141,6 @@ export const scanWebsite = async (
       status: "complete"
     };
   } catch (error) {
-    // Handle errors
     return {
       url,
       assets: [],
@@ -140,6 +154,8 @@ export const scanWebsite = async (
 // Helper to get random extension for an asset type
 const getRandomExtensionForType = (type: AssetType): string => {
   switch (type) {
+    case "html":
+      return ".html";
     case "image":
       return [".jpg", ".png", ".svg", ".webp", ".gif"][Math.floor(Math.random() * 5)];
     case "stylesheet":

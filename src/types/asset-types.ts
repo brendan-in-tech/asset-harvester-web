@@ -7,7 +7,8 @@ export type AssetType =
   | "stylesheet" 
   | "script" 
   | "font" 
-  | "document" 
+  | "document"
+  | "html"  // Added HTML type
   | "other";
 
 // Single asset object
